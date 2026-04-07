@@ -1,0 +1,14 @@
+# Arquivos de ambiente (nunca suba sua API Key!)
+.env
+
+# Arquivos temporários do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Arquivos do VS Code (opcional)
+.vscode/
+
+# Logs
+*.log
