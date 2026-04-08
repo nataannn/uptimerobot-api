@@ -1,0 +1,19 @@
+# Arquivos que não precisam ir para o container
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.env
+.git/
+.gitignore
+.github/
+.vscode/
+__pycache__/
+*.log
+Dockerfile
+.dockerignore
+README.md
