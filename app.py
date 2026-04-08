@@ -104,8 +104,11 @@ def bulk_create():
             "url": monitor["url"],
             "type": "http",
             "interval": monitor.get("interval", 300),
-            "timeout": monitor.get("timeout", 30)   
-            }
+            "timeout": monitor.get("timeout", 30),
+            "tagNames": monitor["tagNames"],
+            "successHttpResponseCodes": monitor["successHttpResponseCodes"],
+            "groupId": monitor.get("groupId", 0)   
+        }
         
         # Headers
         headers = {
