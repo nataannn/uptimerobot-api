@@ -28,16 +28,16 @@ def create_monitor():
     # Criando monitor usando a API do UptimeRobot v3 (RESTful)
     data = request.get_json()
 
-    if not data or not data.get("friendly_name") or not data.get("url"):
-        return jsonify({"error": "Os campos friendly_name e url são obrigatórios!"}), 400
+    if not data or not data.get("friendlyName") or not data.get("url"):
+        return jsonify({"error": "Os campos friendlyName e url são obrigatórios!"}), 400
     
     # Payload ( adicionar tags posteriormente '07/04/2026' )
     payload = {
-        "friendly_name": data["friendly_name"],
+        "friendlyName": data["friendlyName"],
         "url": data["url"],
         "type": "http",
         "interval": data.get("interval", 60),
-        "http_method": data.get("http_method", "GET")
+        "timeout": data.get("timeout", 30)
     }
 
     # Headers
@@ -62,7 +62,7 @@ def create_monitor():
                 "status": "success",
                 "message": "Monitor criado com sucesso.",
                 "monitor_id": result.get("id"), 
-                "friendly_name": data["friendly_name"]
+                "friendlyName": data["friendlyName"]
             }), 201
         else:
             return jsonify({
