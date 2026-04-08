@@ -2,6 +2,8 @@
 from flask import Flask, request, jsonify
 import requests
 import os
+import json
+import time
 from dotenv import load_dotenv
 
 # Carrega as variáveis do .env (ex: a API key)
@@ -155,7 +157,89 @@ def bulk_create():
         "falhas": len(monitors) - sucessos,
         "detalhes": resultados
     }), 200
-    
+
+# Rota para importar monitores - lendo monitors.json e criando-os
+@app.route('/import-monitors', methods=['GET'])
+def import_monitors():
+    # Função irá ler o arquivo monitors.json e criará todos de uma vez.
+    try:
+        # Leitura
+        with open('monitors.json', 'r', encoding='utf-8') as file:
+            monitors = json.load(file)
+            
+        print(f"Encontrados {len(monitors)} monitors no arquivo.")
+        
+        # Reutilização da lógica do bulk-create
+        resultados = []
+        sucessos = 0
+        
+        for monitor in monitors:
+            payload = {
+                "friendlyName": monitor["friendlyName"],
+                "url": monitor["url"],
+                "type": "http",
+                "interval": monitor.get("interval", 300),
+                "timeout": monitor.get("timeout", 30),
+                "tagNames": monitor.get("tagNames", []),
+                "successHttpResponseCodes": monitor.get("successHttpResponseCodes", ["2xx", "3xx"]),
+                "groupId": monitor.get("groupId", 0)
+            }
+            
+            headers = {
+                "Authorization": f"Bearer {API_KEY}",
+                "Content-Type": "application/json"
+            }
+
+            try:
+                response = requests.post(
+                    UPTIME_API_URL,
+                    json=payload,
+                    headers=headers,
+                    timeout=10
+                )
+                result = response.json()
+                
+                if response.status_code == 201:
+                    resultados.append({
+                        "status": "success",
+                        "friendlyName": monitor['friendlyName'],
+                        "monitor_id": result.get("id")
+                    })
+                    sucessos += 1
+                else:
+                    resultados.append({
+                        "status": "error",
+                        "friendlyName": monitor['friendlyName'],
+                        "message": result.get("error") or result.get("message") or str(result)
+                    })
+            except Exception as e:
+                resultados.append({
+                    "status": "error",
+                    "friendlyName": monitor['friendlyName'],
+                    "message": str(e)
+                })
+            
+            # Delay para não interferir na adição dos monitores
+            time.sleep(10)
+        
+        # Retornando resumo final
+        return jsonify({
+            "status": "finalizado",
+            "total": len(monitors),
+            "sucessos": sucessos,
+            "falhas": len(monitors) - sucessos,
+            "detalhes": resultados
+        })
+
+    except FileNotFoundError:
+        return jsonify({
+            "error": "Arquivo monitors.json não encontrado!"
+        }), 404
+    except Exception as e:
+        return jsonify({
+            "error": str(e)
+        }), 500
+
 # Rota de saúde
 @app.route('/health', methods=['GET'])
 def health():
