@@ -3,7 +3,6 @@ from flask import Flask, request, jsonify
 import requests
 import os
 import json
-import time
 from functools import wraps
 from dotenv import load_dotenv
 
@@ -44,7 +43,6 @@ def require_api_key(f):
 
 # Base URL API v3
 UPTIME_API_URL = "https://api.uptimerobot.com/v3/monitors"
-
 
 # Rota para criar o monitor
 @app.route('/create-monitor', methods=['POST'])
@@ -264,6 +262,58 @@ def import_monitors():
             "error": str(e)
         }), 500
 
+# Rota de listagem dos monitores
+@app.route('/monitors', methods=['GET'])
+@require_api_key
+
+def list_monitors():
+    # Retornará todos os monitors cadastrados no UptimeRobot.
+    
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Accept": "application/json"
+    }
+    
+    try:
+        response = requests.get(
+            "https://api.uptimerobot.com/v3/monitors",
+            headers=headers,
+            timeout=15
+        )
+        
+        result = response.json()
+
+        if response.status_code == 200:
+            monitors = result.get("data", [])
+            
+            formatted_monitors = []
+            for monitor in monitors:
+                formatted_monitors.append({
+                    "id": monitor.get("id"),
+                    "friendlyName": monitor.get("friendlyName"),
+                    "url": monitor.get("url"),
+                    "status": monitor.get("status"),
+                    "interval": monitor.get("interval"),
+                    "createDatetime": monitor.get("createDatetime")
+                })
+                
+            return jsonify({
+                "status": "success",
+                "total": len(monitors),
+                "monitors": formatted_monitors
+            })
+        else:
+            return jsonify({
+                "status":"error",
+                "message": result.get("error") or result.get("message") or "Erro ao buscar monitores."
+            }), response.status_code
+        
+    except Exception as e:
+        return jsonify({
+            "status":"error",
+            "message":str(e)
+        }), 500
+        
 # Rota de saúde
 @app.route('/health', methods=['GET'])
 def health():
