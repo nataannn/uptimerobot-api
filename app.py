@@ -37,7 +37,10 @@ def create_monitor():
         "url": data["url"],
         "type": "http",
         "interval": data.get("interval", 60),
-        "timeout": data.get("timeout", 30)
+        "timeout": data.get("timeout", 30),
+        "tagNames": data["tagNames"],
+        "successHttpResponseCodes": data["successHttpResponseCodes"],
+        "groupId": data.get("groupId", 0)
     }
 
     # Headers
@@ -73,7 +76,38 @@ def create_monitor():
         
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
-
+    
+# Rota para o bulk_create
+@app.route('/bulk-create', methods=['POST'])
+def bulk_create():
+    # Irá receber uma lista de monitores e criar eles automaticamente
+    
+    # Pega dados enviados no corpo da requisição em JSON
+    monitors = request.get_json()
+    
+    # Validação
+    if not monitors or not isinstance(monitors, list):
+        return jsonify({
+            "error": "Você deve enviar uma lista de monitors."
+        }), 400
+        
+    # Variáveis para guardar resultados
+    resultados = []
+    sucessos = 0
+    
+    # Loop de execução para cada monitor da lista
+    for monitor in monitors:
+        
+        # Payload
+        payload = {
+            "friendlyName": monitor["friendlyName"],
+            "url": monitor["url"],
+            "type": "http",
+            "interval": monitor.get("interval", 300),
+            "timeout": monitor.get("timeout", 30)   
+            } 
+    
+    
 # Rota de saúde
 @app.route('/health', methods=['GET'])
 def health():
