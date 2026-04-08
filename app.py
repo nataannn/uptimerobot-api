@@ -36,10 +36,10 @@ def create_monitor():
         "friendlyName": data["friendlyName"],
         "url": data["url"],
         "type": "http",
-        "interval": data.get("interval", 60),
+        "interval": data.get("interval", 300),
         "timeout": data.get("timeout", 30),
-        "tagNames": data["tagNames"],
-        "successHttpResponseCodes": data["successHttpResponseCodes", "2xx", "3xx"],
+        "tagNames": data.get("tagNames", []),
+        "successHttpResponseCodes": data.get("successHttpResponseCodes", ["2xx,3xx"]),
         "groupId": data.get("groupId", 0)
     }
 
@@ -105,8 +105,8 @@ def bulk_create():
             "type": "http",
             "interval": monitor.get("interval", 300),
             "timeout": monitor.get("timeout", 30),
-            "tagNames": monitor["tagNames"],
-            "successHttpResponseCodes": monitor["successHttpResponseCodes", "2xx", "3xx"],
+            "tagNames": monitor.get("tagNames", []),
+            "successHttpResponseCodes": monitor.get("successHttpResponseCodes", ["2xx, 3xx"]),
             "groupId": monitor.get("groupId", 0)   
         }
         
