@@ -105,8 +105,53 @@ def bulk_create():
             "type": "http",
             "interval": monitor.get("interval", 300),
             "timeout": monitor.get("timeout", 30)   
-            } 
+            }
+        
+        # Headers
+        headers = {
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        # Tentativa de criação do monitor
+        try:
+            response = requests.post(
+                UPTIME_API_URL,
+                json=payload,
+                headers=headers,
+                timeout=10
+            )
+            
+            result = response.json()
+            
+            if response.status_code == 201:
+                resultados.append({
+                    "status":"success",
+                    "friendlyName": monitor["friendlyName"],
+                    "monitor_id": result.get("id")
+                })
+                sucessos += 1
+            else:
+                resultados.append({
+                    "status":"error",
+                    "friendlyName":monitor["friendlyName"],
+                    "message": result.get("error") or result.get("message")
+                })
+        except Exception as e:
+            resultados.append({
+                "status":"error",
+                "friendlyName": monitor["friendlyName"],
+                "message": str(e)
+            })
     
+    # Resumo da operação
+    return jsonify({
+        "status":"Finalizado.",
+        "total": len(monitors),
+        "sucessos": sucessos,
+        "falhas": len(monitors) - sucessos,
+        "detalhes": resultados
+    }), 200
     
 # Rota de saúde
 @app.route('/health', methods=['GET'])
