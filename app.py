@@ -4,6 +4,7 @@ import requests
 import os
 import json
 import time
+from functools import wraps
 from dotenv import load_dotenv
 
 # Carrega as variáveis do .env (ex: a API key)
@@ -12,12 +13,34 @@ load_dotenv()
 # Criando a aplicação Flask
 app = Flask(__name__) # Ligando "motor" da API
 
-# Pegando a chave secreta do .env
+# Pegando as chaves do env.
 API_KEY = os.getenv("UPTIME_ROBOT_KEY")
+API_KEY_SECRET = os.getenv("API_KEY_SECRET")
 
 if not API_KEY:
-    print("ERRO: Crie o arquivo .env com UPTIME_ROBOT_KEY")
+    print("ERRO: Não encontrado UPTIME_ROBOT_KEY no .env")
     exit(1)
+    
+if not API_KEY_SECRET:
+    print("ERRO: Não encontrado API_KEY_SECRET no .env")
+    
+# Função de autenticação
+def require_api_key(f):
+    # Função que verifica se o usuário usou a chave correta no header
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        # Pega o header X-API-KEY que o usuário enviou
+        api_key_received = request.headers.get('X-API-KEY')
+        
+        if not api_key_received or api_key_received != API_KEY_SECRET:
+            return jsonify({
+                "error": "Acesso negado! Chave API inválida ou ausente.",
+                "message": "Envie o header X-API-KEY com a chave correta."
+            }), 401
+            
+        # Se a chave estiver certa, continua executando a rota normalmente
+        return f(*args, **kwargs)
+    return decorated
 
 # Base URL API v3
 UPTIME_API_URL = "https://api.uptimerobot.com/v3/monitors"
@@ -81,6 +104,8 @@ def create_monitor():
     
 # Rota para o bulk_create
 @app.route('/bulk-create', methods=['POST'])
+@require_api_key
+
 def bulk_create():
     # Irá receber uma lista de monitores e criar eles automaticamente
     
@@ -160,6 +185,8 @@ def bulk_create():
 
 # Rota para importar monitores - lendo monitors.json e criando-os
 @app.route('/import-monitors', methods=['GET'])
+@require_api_key
+
 def import_monitors():
     # Função irá ler o arquivo monitors.json e criará todos de uma vez.
     try:
@@ -218,9 +245,6 @@ def import_monitors():
                     "friendlyName": monitor['friendlyName'],
                     "message": str(e)
                 })
-            
-            # Delay para não interferir na adição dos monitores
-            time.sleep(10)
         
         # Retornando resumo final
         return jsonify({
