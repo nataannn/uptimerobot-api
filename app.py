@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 import requests
 import os
 import json
+import pandas as pd
 from functools import wraps
 from dotenv import load_dotenv
 
@@ -313,7 +314,98 @@ def list_monitors():
             "status":"error",
             "message":str(e)
         }), 500
-        
+
+# Rota para ler planilhas do excel e criar os monitors
+@app.route('/import-from-excel', methods=['GET'])
+@require_api_key
+def import_from_excel():
+    try:
+        df = pd.read_csv('monitores.csv')
+
+        print(f"Encontradas {len(df)} linhas no arquivo.")
+
+        resultados = []
+        sucessos = 0
+
+        for index, row in df.iterrows():
+            friendly_name = str(row['Nome']).strip()
+            url = str(row['Endpoint']).strip()
+
+            group_id = 0
+            if 'Cliente' in df.columns and pd.notna(row['Cliente']):
+                try:
+                    group_id = int(row['Cliente'])
+                except:
+                    group_id = 0
+            
+            tags = []
+            if 'Ambiente' in df.columns and pd.notna(row['Ambiente']):
+                tags.append(str(row['Ambiente']).strip())
+
+            payload = {
+                "friendlyName": friendly_name,
+                "url": url,
+                "type": "http",
+                "interval": 300,
+                "timeout": 30,
+                "successHttpResponseCodes": ["2xx", "3xx"],
+                "tagNames": tags,
+                "groupId": group_id
+            }
+
+            headers = {
+                "Authorization": f"Bearer {API_KEY}",
+                "Content-Type": "application/json"
+            }
+
+            try:
+                response = requests.post(
+                    UPTIME_API_URL,
+                    json=payload,
+                    headers=headers,
+                    timeout=15
+                )
+
+                # === MELHORIA: Verifica se a resposta é JSON válido ===
+                if response.status_code == 201:
+                    result = response.json()
+                    resultados.append({
+                        "status": "success",
+                        "friendlyName": friendly_name,
+                        "monitor_id": result.get("id")
+                    })
+                    sucessos += 1
+                else:
+                    # Tenta pegar o erro real
+                    try:
+                        error_detail = response.json()
+                    except:
+                        error_detail = response.text[:500]  # mostra os primeiros 500 caracteres
+                    resultados.append({
+                        "status": "error",
+                        "friendlyName": friendly_name,
+                        "status_code": response.status_code,
+                        "message": error_detail
+                    })
+
+            except Exception as e:
+                resultados.append({
+                    "status": "error",
+                    "friendlyName": friendly_name,
+                    "message": str(e)
+                })
+
+        return jsonify({
+            "status": "finalizado",
+            "total": len(df),
+            "sucessos": sucessos,
+            "falhas": len(df) - sucessos,
+            "detalhes": resultados
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 # Rota de saúde
 @app.route('/health', methods=['GET'])
 def health():

@@ -3,10 +3,5 @@
     "friendlyName": "Google Test",
     "url": "https://www.google.com",
     "successHttpResponseCodes": ["2xx", "3xx"]
-  },
-  {
-    "friendlyName": "JSON Placeholder Test",
-    "url": "https://jsonplaceholder.typicode.com/posts/1",
-    "successHttpResponseCodes": ["2xx"]
   }
 ]

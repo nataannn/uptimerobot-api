@@ -1,0 +1,28 @@
+Nome,Ambiente,Cliente,Endpoint
+Loc/StartApp One <> BR-LAU-1 <> Production <> Loc - User API,production,,https://api.meuloc.com/user
+Loc/StartApp One <> BR-LAU-1 <> Production <> Loc - Admin API,production,,https://api.meuloc.com/admin
+Loc/StartApp One <> BR-LAU-1 <> Staging <> Loc - User API,staging,,https://staging.api.meuloc.com/user
+Loc/StartApp One <> BR-LAU-1 <> Staging <> Loc - Admin API,staging,,https://staging.api.meuloc.com/admin
+Loc/StartApp One <> BR-LAU-1 <> Production <> Loc - Dashboard,production,,https://dashboard.meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Staging <> Loc - Dashboard,staging,,https://staging.dashboard.meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Production <> Loc - Download,production,,https://download.meuloc.com
+Loc/StartApp One <> BR-LAU-1 <> Staging <> Loc - Download,staging,,https://staging.download.meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Produc3tion <> Loc - Franquia Frontend,production,,https://franquia.meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Staging <> Loc - Franquia Frontend,staging,,https://staging.franquia.meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Production <> Loc - LinkTree Frontend,production,,https://link.meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Staging <> Loc - LinkTree Frontend,staging,,https://staging.link.meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Production <> Loc - Reset Password,production,,https://resetpassword.meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Staging <> Loc - Reset Password,staging,,https://staging.resetpassword.meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Production <> Loc - Static Assets,production,,https://static.meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Staging <> Loc - Static Assets,staging,,https://staging.static.meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Production <> Loc - Verify ,production,,https://verify.meuloc.com
+Loc/StartApp One <> BR-LAU-1 <> Staging <> Loc - Verify ,staging,,https://staging.verify.meuloc.com
+Loc/StartApp One <> BR-LAU-1 <> Production <> Loc - Frontend,production,,https://meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Staging <> Loc - Frontend,staging,,https://staging.meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Production <> Loc - Frontend (WWW),production,,https://www.meuloc.com/
+Loc/StartApp One <> BR-LAU-1 <> Production <> MISTRAL - User API ,production,,https://api.mistral.startapp.one/user
+Loc/StartApp One <> BR-LAU-1 <> Production <> MISTRAL - Admin API,production,,https://api.mistral.startapp.one/admin
+Loc/StartApp One <> BR-LAU-1 <> Production <> MISTRAL - Platform API,production,,https://api.mistral.startapp.one/platform
+Loc/StartApp One <> BR-LAU-1 <> Production <> MISTRAL - Static Assets,production,,https://static.mistral.startapp.one/
+Loc/StartApp One <> BR-LAU-1 <> Production <> MISTRAL - API,production,,https://mistral.startapp.one/
+Loc/StartApp One <> BR-LAU-1 <> Production <> Verdaccio,production,,https://npm.startapp.one/

@@ -3,7 +3,7 @@ version: '3.8'
 services:
   api:
     build: .
-    container_name: uptimerobot api
+    container_name: uptimerobot-api
     ports:
       - "5000:5000"
     env_file:
