@@ -1,5 +1,6 @@
-# Arquivos de ambiente (nunca suba sua API Key!)
+# Arquivos de ambiente
 .env
+
 
 # Arquivos temporários do Python
 __pycache__/
@@ -12,3 +13,7 @@ __pycache__/
 
 # Logs
 *.log
+
+# Arquivos de Dados
+*.csv
+*.json
