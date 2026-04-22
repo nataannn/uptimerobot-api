@@ -8,7 +8,7 @@ Projeto desenvolvido como primeiro trabalho oficial como DevOps.
 
 ## Instalação
 
-git clone https://github.com/SEU_USUARIO/uptimerobot-api.git
+git clone https://github.com/nataannn/uptimerobot-api.git
 cd uptimerobot-api
 pip install -r requirements.txt
 
