@@ -1,6 +1,0 @@
-Nome,Ambiente,Cliente,Endpoint
-BigDelivery <> BR-LAU-1 <> Production <> API,production,,https://api.sales.bigdelivery.com.br/health_check
-BigDelivery <> BR-LAU-1 <> Production <> Frontend,production,,http://bigdelivery.com.br/
-BigDelivery <> BR-LAU-1 <> Production <> Frontend (WWW),production,,https://www.bigdelivery.com.br
-BigDelivery <> BR-LAU-1 <> Production <> Fulfillment,production,,https://fulfillment.bigdelivery.com.br
-BigDelivery <> BR-LAU-1 <> Production <> Supervisor,production,,https://supervisor.bigdelivery.com.br
