@@ -1,7 +1,0 @@
-[
-  {
-    "friendlyName": "Google Test",
-    "url": "https://www.google.com",
-    "successHttpResponseCodes": ["2xx", "3xx"]
-  }
-]
