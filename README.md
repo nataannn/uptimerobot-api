@@ -2,8 +2,6 @@
 
 API em Flask para criar monitors no UptimeRobot v3.
 
-Projeto desenvolvido como primeiro trabalho oficial como DevOps.
-
 ---
 
 ## Instalação
