@@ -4,6 +4,7 @@ import requests
 import os
 import json
 import pandas as pd
+import time
 from functools import wraps
 from dotenv import load_dotenv
 
@@ -63,8 +64,11 @@ def create_monitor():
         "interval": data.get("interval", 300),
         "timeout": data.get("timeout", 30),
         "tagNames": data.get("tagNames", []),
-        "successHttpResponseCodes": data.get("successHttpResponseCodes", ["2xx,3xx"]),
-        "groupId": data.get("groupId", 0)
+        "successHttpResponseCodes": data.get("successHttpResponseCodes", ["2xx", "3xx"]),
+        "groupId": data.get("groupId", 0),
+        "regionData": {
+            "REGION": data.get("regions", ALL_REGIONS)
+        }
     }
 
     # Headers
@@ -126,15 +130,18 @@ def bulk_create():
         
         # Payload
         payload = {
-            "friendlyName": monitor["friendlyName"],
-            "url": monitor["url"],
+            "friendlyName": data["friendlyName"],
+            "url": data["url"],
             "type": "http",
-            "interval": monitor.get("interval", 300),
-            "timeout": monitor.get("timeout", 30),
-            "tagNames": monitor.get("tagNames", []),
-            "successHttpResponseCodes": monitor.get("successHttpResponseCodes", ["2xx, 3xx"]),
-            "groupId": monitor.get("groupId", 0)   
+            "interval": data.get("interval", 300),
+            "timeout": data.get("timeout", 30),
+            "tagNames": data.get("tagNames", []),
+            "successHttpResponseCodes": data.get("successHttpResponseCodes", ["2xx", "3xx"]),
+            "groupId": data.get("groupId", 0),
+            "regionData": {
+                "REGION": data.get("regions", ALL_REGIONS)
         }
+    }
         
         # Headers
         headers = {
@@ -201,15 +208,18 @@ def import_monitors():
         
         for monitor in monitors:
             payload = {
-                "friendlyName": monitor["friendlyName"],
-                "url": monitor["url"],
-                "type": "http",
-                "interval": monitor.get("interval", 300),
-                "timeout": monitor.get("timeout", 30),
-                "tagNames": monitor.get("tagNames", []),
-                "successHttpResponseCodes": monitor.get("successHttpResponseCodes", ["2xx", "3xx"]),
-                "groupId": monitor.get("groupId", 0)
-            }
+            "friendlyName": data["friendlyName"],
+            "url": data["url"],
+            "type": "http",
+            "interval": data.get("interval", 300),
+            "timeout": data.get("timeout", 30),
+            "tagNames": data.get("tagNames", []),
+            "successHttpResponseCodes": data.get("successHttpResponseCodes", ["2xx", "3xx"]),
+            "groupId": data.get("groupId", 0),
+            "regionData": {
+                "REGION": data.get("regions", ALL_REGIONS)
+        }
+    }
             
             headers = {
                 "Authorization": f"Bearer {API_KEY}",
@@ -405,6 +415,138 @@ def import_from_excel():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+    # Regiões que serão aplicadas a todos os monitores
+ALL_REGIONS = ["na", "eu", "as", "oc"]  # North America, Europe, Asia, Australia
+
+def get_all_monitors():
+    """Busca TODOS os monitores, seguindo a paginação por cursor da API v3."""
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Accept": "application/json"
+    }
+
+    monitors = []
+    url = UPTIME_API_URL  # https://api.uptimerobot.com/v3/monitors
+
+    while url:
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
+        result = response.json()
+
+        monitors.extend(result.get("data", []))
+
+        # Paginação por cursor: se houver próxima página, continua
+        next_link = (result.get("links") or {}).get("next")
+        url = next_link if next_link else None
+
+    return monitors
+
+
+# Rota para aplicar as regiões em todos os monitores
+@app.route('/set-regions-all', methods=['POST'])
+@require_api_key
+def set_regions_all():
+    """
+    Aplica as regiões (na, eu, as, oc) em TODOS os monitores via PATCH.
+    Aceita opcionalmente um body JSON: {"regions": ["na", "eu"]} para customizar.
+    Aceita também {"dry_run": true} para apenas listar o que seria alterado.
+    """
+    body = request.get_json(silent=True) or {}
+    regions = body.get("regions", ALL_REGIONS)
+    dry_run = body.get("dry_run", False)
+
+    # Validação das regiões
+    invalid = [r for r in regions if r not in ALL_REGIONS]
+    if invalid:
+        return jsonify({
+            "error": f"Regiões inválidas: {invalid}. Use apenas: {ALL_REGIONS}"
+        }), 400
+
+    try:
+        monitors = get_all_monitors()
+    except Exception as e:
+        return jsonify({"error": f"Falha ao listar monitores: {str(e)}"}), 500
+
+    print(f"Encontrados {len(monitors)} monitores.")
+
+    if dry_run:
+        return jsonify({
+            "dry_run": True,
+            "total": len(monitors),
+            "regions_a_aplicar": regions,
+            "monitores": [
+                {"id": m.get("id"), "friendlyName": m.get("friendlyName")}
+                for m in monitors
+            ]
+        })
+
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "regionData": {
+            "REGION": regions
+        }
+    }
+
+    resultados = []
+    sucessos = 0
+
+    for monitor in monitors:
+        monitor_id = monitor.get("id")
+        friendly_name = monitor.get("friendlyName")
+
+        try:
+            response = requests.patch(
+                f"{UPTIME_API_URL}/{monitor_id}",
+                json=payload,
+                headers=headers,
+                timeout=15
+            )
+
+            if response.status_code == 200:
+                resultados.append({
+                    "status": "success",
+                    "monitor_id": monitor_id,
+                    "friendlyName": friendly_name,
+                    "regions": regions
+                })
+                sucessos += 1
+            else:
+                try:
+                    error_detail = response.json()
+                except Exception:
+                    error_detail = response.text[:300]
+                resultados.append({
+                    "status": "error",
+                    "monitor_id": monitor_id,
+                    "friendlyName": friendly_name,
+                    "status_code": response.status_code,
+                    "message": error_detail
+                })
+
+            # Pausa leve para respeitar o rate limit da API
+            time.sleep(0.5)
+
+        except Exception as e:
+            resultados.append({
+                "status": "error",
+                "monitor_id": monitor_id,
+                "friendlyName": friendly_name,
+                "message": str(e)
+            })
+
+    return jsonify({
+        "status": "finalizado",
+        "total": len(monitors),
+        "sucessos": sucessos,
+        "falhas": len(monitors) - sucessos,
+        "regions_aplicadas": regions,
+        "detalhes": resultados
+    })
     
 # Rota de saúde
 @app.route('/health', methods=['GET'])
