@@ -420,7 +420,11 @@ def import_from_excel():
 ALL_REGIONS = ["na", "eu", "as", "oc"]  # North America, Europe, Asia, Australia
 
 def get_all_monitors():
-    """Busca TODOS os monitores, seguindo a paginação por cursor da API v3."""
+    """
+    Busca TODOS os monitores lidando com a paginação por cursor da v3.
+    Procura o cursor 'next' em vários locais comuns da resposta e tem
+    um teto de segurança para não entrar em loop infinito.
+    """
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Accept": "application/json"
@@ -428,18 +432,57 @@ def get_all_monitors():
 
     monitors = []
     url = UPTIME_API_URL  # https://api.uptimerobot.com/v3/monitors
+    params = {"limit": 50}  # máximo por página na v3
+    pagina = 0
+    MAX_PAGINAS = 50  # teto de segurança (50 * 50 = 2500 monitores)
 
-    while url:
-        response = requests.get(url, headers=headers, timeout=15)
+    while url and pagina < MAX_PAGINAS:
+        response = requests.get(url, headers=headers, params=params, timeout=15)
         response.raise_for_status()
         result = response.json()
 
-        monitors.extend(result.get("data", []))
+        # Na primeira página, imprime a estrutura para diagnóstico
+        if pagina == 0:
+            print(">>> Chaves da resposta:", list(result.keys()))
+            for chave in ("pagination", "meta", "links", "page"):
+                if chave in result:
+                    print(f">>> Conteúdo de '{chave}':", result[chave])
 
-        # Paginação por cursor: se houver próxima página, continua
-        next_link = (result.get("links") or {}).get("next")
-        url = next_link if next_link else None
+        # Os monitores podem vir em 'data' (ou direto na raiz, dependendo da versão)
+        page_items = result.get("data", result.get("monitors", []))
+        monitors.extend(page_items)
+        print(f">>> Página {pagina + 1}: {len(page_items)} monitores (acumulado: {len(monitors)})")
 
+        # Tenta achar o cursor da próxima página em vários formatos possíveis
+        next_url = None
+        next_cursor = None
+
+        links = result.get("links") or {}
+        if isinstance(links, dict) and links.get("next"):
+            next_url = links["next"]
+
+        pagination = result.get("pagination") or result.get("meta") or {}
+        if isinstance(pagination, dict):
+            next_cursor = (
+                pagination.get("nextCursor")
+                or pagination.get("next_cursor")
+                or pagination.get("cursor")
+                or pagination.get("next")
+            )
+
+        # Define como a próxima iteração vai buscar
+        if next_url:
+            url = next_url          # link completo: usa direto, zera params
+            params = {}
+        elif next_cursor:
+            url = UPTIME_API_URL    # mesma URL base + cursor nos params
+            params = {"limit": 50, "cursor": next_cursor}
+        else:
+            url = None              # não há próxima página, encerra
+
+        pagina += 1
+
+    print(f">>> TOTAL coletado: {len(monitors)} monitores")
     return monitors
 
 
