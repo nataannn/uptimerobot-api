@@ -130,16 +130,16 @@ def bulk_create():
         
         # Payload
         payload = {
-            "friendlyName": data["friendlyName"],
-            "url": data["url"],
+            "friendlyName": monitor["friendlyName"],
+            "url": monitor["url"],
             "type": "http",
-            "interval": data.get("interval", 300),
-            "timeout": data.get("timeout", 30),
-            "tagNames": data.get("tagNames", []),
-            "successHttpResponseCodes": data.get("successHttpResponseCodes", ["2xx", "3xx"]),
-            "groupId": data.get("groupId", 0),
+            "interval": monitor.get("interval", 300),
+            "timeout": monitor.get("timeout", 30),
+            "tagNames": monitor.get("tagNames", []),
+            "successHttpResponseCodes": monitor.get("successHttpResponseCodes", ["2xx", "3xx"]),
+            "groupId": monitor.get("groupId", 0),
             "regionData": {
-                "REGION": data.get("regions", ALL_REGIONS)
+                "REGION": monitor.get("regions", ALL_REGIONS)
         }
     }
         
@@ -208,16 +208,16 @@ def import_monitors():
         
         for monitor in monitors:
             payload = {
-            "friendlyName": data["friendlyName"],
-            "url": data["url"],
+            "friendlyName": monitor["friendlyName"],
+            "url": monitor["url"],
             "type": "http",
-            "interval": data.get("interval", 300),
-            "timeout": data.get("timeout", 30),
-            "tagNames": data.get("tagNames", []),
-            "successHttpResponseCodes": data.get("successHttpResponseCodes", ["2xx", "3xx"]),
-            "groupId": data.get("groupId", 0),
+            "interval": monitor.get("interval", 300),
+            "timeout": monitor.get("timeout", 30),
+            "tagNames": monitor.get("tagNames", []),
+            "successHttpResponseCodes": monitor.get("successHttpResponseCodes", ["2xx", "3xx"]),
+            "groupId": monitor.get("groupId", 0),
             "regionData": {
-                "REGION": data.get("regions", ALL_REGIONS)
+                "REGION": monitor.get("regions", ALL_REGIONS)
         }
     }
             
