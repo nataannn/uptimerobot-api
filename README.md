@@ -67,6 +67,7 @@ Todas as rotas (exceto `/health`) exigem o header `X-API-KEY`.
 | `/import-monitors` | GET | Lê `monitors.json` na raiz e cria todos em paralelo. |
 | `/import-from-excel` | GET | Lê `monitores.csv` na raiz e cria todos em paralelo. |
 | `/monitors` | GET | Lista todos os monitors (percorre todas as páginas). |
+| `/monitors/export?format=csv\|json` | GET | Baixa todos os monitors como arquivo `.csv` ou `.json`. |
 | `/set-regions-all` | POST | Aplica regiões (`na`, `eu`, `as`, `oc`) em todos os monitors. Aceita `dry_run: true`. |
 
 Respostas seguem sempre o formato `{"status": "success" | "error", ...}`.

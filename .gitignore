@@ -21,4 +21,6 @@ venv/
 # Arquivos de Dados
 *.csv
 *.json
-*.json
+
+# ...exceto a collection do Postman, que é código do projeto
+!postman/*.json

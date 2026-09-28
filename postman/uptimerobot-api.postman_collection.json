@@ -1,0 +1,183 @@
+{
+  "info": {
+    "name": "UptimeRobot API",
+    "description": "Endpoints da API Flask que gerencia monitors na UptimeRobot v3.\n\nAntes de usar, preencha a variável `apiKey` (aba Variables da collection) com o valor de API_KEY_SECRET do seu .env.\n\nTodas as rotas usam o header X-API-KEY automaticamente, exceto /health.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "key", "value": "X-API-KEY", "type": "string" },
+      { "key": "value", "value": "{{apiKey}}", "type": "string" },
+      { "key": "in", "value": "header", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "apiKey", "value": "COLE_AQUI_O_API_KEY_SECRET", "type": "string" }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test(\"Sem erro de servidor (5xx)\", function () {",
+          "    pm.expect(pm.response.code).to.be.below(500);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health (rápido)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] },
+            "description": "Checa se a API está de pé. Não precisa de API key."
+          }
+        },
+        {
+          "name": "Health (deep - valida a key da UptimeRobot)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health?deep=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"],
+              "query": [{ "key": "deep", "value": "true" }]
+            },
+            "description": "Além da API, testa a conexão e a key contra a UptimeRobot. Retorna 503 se a UptimeRobot recusar."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Monitors - Consulta",
+      "item": [
+        {
+          "name": "Listar monitors",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/monitors", "host": ["{{baseUrl}}"], "path": ["monitors"] },
+            "description": "Lista todos os monitors da conta (percorre todas as páginas)."
+          }
+        },
+        {
+          "name": "Exportar CSV",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/monitors/export?format=csv",
+              "host": ["{{baseUrl}}"],
+              "path": ["monitors", "export"],
+              "query": [{ "key": "format", "value": "csv" }]
+            },
+            "description": "Baixa todos os monitors em .csv. Use a seta ao lado de Send → 'Send and Download' para salvar como arquivo."
+          }
+        },
+        {
+          "name": "Exportar JSON",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/monitors/export?format=json",
+              "host": ["{{baseUrl}}"],
+              "path": ["monitors", "export"],
+              "query": [{ "key": "format", "value": "json" }]
+            },
+            "description": "Baixa todos os monitors em .json. O arquivo pode ser reenviado no Bulk create. Use 'Send and Download' para salvar."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Monitors - Criação",
+      "item": [
+        {
+          "name": "Criar monitor",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"friendlyName\": \"Meu Site <> Production\",\n  \"url\": \"https://exemplo.com.br\",\n  \"interval\": 300,\n  \"timeout\": 30,\n  \"tagNames\": [\"production\"],\n  \"groupId\": 0,\n  \"regions\": [\"na\", \"eu\", \"as\", \"oc\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/create-monitor", "host": ["{{baseUrl}}"], "path": ["create-monitor"] },
+            "description": "Cria um monitor. Só friendlyName e url são obrigatórios; o resto tem valor padrão."
+          }
+        },
+        {
+          "name": "Bulk create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"friendlyName\": \"Site A <> Production\",\n    \"url\": \"https://site-a.com.br\",\n    \"tagNames\": [\"production\"]\n  },\n  {\n    \"friendlyName\": \"Site B <> Staging\",\n    \"url\": \"https://site-b.com.br\",\n    \"tagNames\": [\"staging\"]\n  }\n]",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/bulk-create", "host": ["{{baseUrl}}"], "path": ["bulk-create"] },
+            "description": "Cria uma lista de monitors em paralelo. Itens inválidos aparecem como falha no resumo, sem derrubar o lote."
+          }
+        },
+        {
+          "name": "Importar de monitors.json",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/import-monitors", "host": ["{{baseUrl}}"], "path": ["import-monitors"] },
+            "description": "Lê o arquivo monitors.json na raiz do projeto e cria todos os monitors dele. ATENÇÃO: cria monitors de verdade."
+          }
+        },
+        {
+          "name": "Importar de monitores.csv",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/import-from-excel", "host": ["{{baseUrl}}"], "path": ["import-from-excel"] },
+            "description": "Lê o arquivo monitores.csv (colunas Nome, Endpoint, Cliente, Ambiente) na raiz do projeto e cria todos. ATENÇÃO: cria monitors de verdade."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Monitors - Regiões",
+      "item": [
+        {
+          "name": "Aplicar regiões (dry run)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"regions\": [\"na\", \"eu\", \"as\", \"oc\"],\n  \"dry_run\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/set-regions-all", "host": ["{{baseUrl}}"], "path": ["set-regions-all"] },
+            "description": "Só mostra quais monitors seriam alterados. Não muda nada."
+          }
+        },
+        {
+          "name": "Aplicar regiões (EXECUTA)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"regions\": [\"na\", \"eu\", \"as\", \"oc\"],\n  \"dry_run\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/set-regions-all", "host": ["{{baseUrl}}"], "path": ["set-regions-all"] },
+            "description": "ATENÇÃO: altera as regiões de TODOS os monitors da conta. Rode o dry run antes."
+          }
+        }
+      ]
+    }
+  ]
+}

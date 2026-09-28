@@ -70,3 +70,60 @@ def test_list_monitors_paginates(client, auth_headers):
     body = resp.get_json()
     assert resp.status_code == 200
     assert body["total"] == 2
+
+
+def _mock_single_page(rsps):
+    rsps.add(
+        responses.GET,
+        UPTIME_MONITORS_URL,
+        json={"data": [
+            {"id": 1, "friendlyName": "Site Ação", "url": "https://a.com", "status": "UP",
+             "createDateTime": "2026-04-08T10:00:00Z", "apiKey": "segredo",
+             "tags": [{"id": 1, "name": "production", "color": "blue"}, {"id": 2, "name": "cliente-x", "color": "red"}]},
+            {"id": 2, "friendlyName": "=HYPERLINK(\"x\")", "url": "https://b.com", "status": "DOWN"},
+        ], "nextLink": None},
+        status=200,
+    )
+
+
+def test_export_json(client, auth_headers):
+    with responses.RequestsMock() as rsps:
+        _mock_single_page(rsps)
+        resp = client.get("/monitors/export?format=json", headers=auth_headers)
+
+    assert resp.status_code == 200
+    assert resp.mimetype == "application/json"
+    assert "attachment" in resp.headers["Content-Disposition"]
+    data = resp.get_json()
+    assert len(data) == 2
+    assert data[0]["friendlyName"] == "Site Ação"
+    assert data[0]["tagNames"] == ["production", "cliente-x"]
+    assert data[0]["createDateTime"] == "2026-04-08T10:00:00Z"
+    assert data[1]["tagNames"] == []
+    # campos sensíveis da API nunca podem vazar no export
+    assert "apiKey" not in data[0]
+
+
+def test_export_csv(client, auth_headers):
+    with responses.RequestsMock() as rsps:
+        _mock_single_page(rsps)
+        resp = client.get("/monitors/export?format=csv", headers=auth_headers)
+
+    assert resp.status_code == 200
+    assert resp.mimetype == "text/csv"
+    text = resp.get_data(as_text=True)
+    assert text.startswith("\ufeffid,friendlyName,url")
+    assert "Site Ação" in text
+    assert "production, cliente-x" in text
+    # célula com fórmula precisa sair neutralizada
+    assert "'=HYPERLINK" in text
+
+
+def test_export_invalid_format(client, auth_headers):
+    resp = client.get("/monitors/export?format=xml", headers=auth_headers)
+    assert resp.status_code == 400
+
+
+def test_export_requires_api_key(client):
+    resp = client.get("/monitors/export")
+    assert resp.status_code == 401

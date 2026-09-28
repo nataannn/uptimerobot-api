@@ -1,10 +1,13 @@
 """Rotas de criação, listagem e importação de monitores."""
+import csv
+import io
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 import pandas as pd
-from flask import Blueprint, request
+from flask import Blueprint, Response, request
 from pydantic import ValidationError
 from requests.exceptions import HTTPError
 
@@ -266,24 +269,95 @@ def list_monitors():
       200: {description: Lista de monitores}
       502: {description: Falha ao consultar a UptimeRobot}
     """
+    monitors, error = _fetch_all_formatted()
+    if error:
+        return error
+
+    return ok(total=len(monitors), monitors=monitors)
+
+
+# Lista fechada de propósito: a API também devolve campos sensíveis (apiKey,
+# httpPassword...) que não devem sair num export.
+# tagNames usa o mesmo nome aceito no /bulk-create, então o JSON exportado
+# pode ser reimportado direto.
+EXPORT_FIELDS = ["id", "friendlyName", "url", "status", "interval", "timeout", "groupId", "tagNames", "createDateTime"]
+
+
+def _format_monitor(m):
+    row = {field: m.get(field) for field in EXPORT_FIELDS}
+    row["tagNames"] = [t.get("name") for t in m.get("tags") or [] if t.get("name")]
+    return row
+
+
+def _fetch_all_formatted():
+    """Busca todos os monitores e devolve (lista_formatada, None) ou (None, resposta_de_erro)."""
     try:
         monitors = client.get_all_monitors()
     except HTTPError as e:
         status = e.response.status_code if e.response is not None else 502
-        return fail(f"Erro ao buscar monitores: {e}", status_code=status)
+        return None, fail(f"Erro ao buscar monitores: {e}", status_code=status)
     except Exception as e:
-        return fail(str(e), status_code=500)
+        return None, fail(str(e), status_code=500)
 
-    formatted = [{
-        "id": m.get("id"),
-        "friendlyName": m.get("friendlyName"),
-        "url": m.get("url"),
-        "status": m.get("status"),
-        "interval": m.get("interval"),
-        "createDatetime": m.get("createDatetime"),
-    } for m in monitors]
+    return [_format_monitor(m) for m in monitors], None
 
-    return ok(total=len(monitors), monitors=formatted)
+
+def _csv_safe(value):
+    """Evita CSV injection: Excel executa células que começam com = + - @ como fórmula."""
+    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@"):
+        return "'" + value
+    return value
+
+
+@monitors_bp.route("/monitors/export", methods=["GET"])
+@require_api_key
+@limiter.limit("10 per minute")
+def export_monitors():
+    """
+    Exporta todos os monitores da conta como arquivo CSV ou JSON.
+    ---
+    tags: [monitors]
+    security: [{ApiKeyAuth: []}]
+    parameters:
+      - in: query
+        name: format
+        type: string
+        enum: [csv, json]
+        default: json
+    responses:
+      200: {description: Arquivo para download}
+      400: {description: Formato inválido}
+    """
+    fmt = request.args.get("format", "json").lower()
+    if fmt not in ("csv", "json"):
+        return fail("Formato inválido. Use ?format=csv ou ?format=json.")
+
+    monitors, error = _fetch_all_formatted()
+    if error:
+        return error
+
+    filename = f"monitors_{datetime.now().strftime('%Y%m%d-%H%M%S')}.{fmt}"
+
+    if fmt == "json":
+        body = json.dumps(monitors, ensure_ascii=False, indent=2)
+        mimetype = "application/json"
+    else:
+        buffer = io.StringIO()
+        writer = csv.DictWriter(buffer, fieldnames=EXPORT_FIELDS)
+        writer.writeheader()
+        for m in monitors:
+            row = {**m, "tagNames": ", ".join(m["tagNames"])}
+            writer.writerow({k: _csv_safe(v) for k, v in row.items()})
+        # BOM pra o Excel reconhecer UTF-8 e não quebrar acentuação.
+        body = "\ufeff" + buffer.getvalue()
+        mimetype = "text/csv"
+
+    logger.info("Exportados %d monitores em %s.", len(monitors), fmt)
+    return Response(
+        body,
+        mimetype=f"{mimetype}; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 def _patch_region(monitor, regions):
