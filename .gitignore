@@ -7,6 +7,10 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
+.ruff_cache/
+venv/
+.venv/
 
 # Arquivos do VS Code (opcional)
 .vscode/
